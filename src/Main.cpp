@@ -1,5 +1,6 @@
 #include "game/Game.h"
 #include <SDL2/SDL.h>
+#include "tools/logger/Logger.h"
 
 int main(int argc, char* argv[]) {
     bool isRunning = true;
@@ -9,14 +10,14 @@ int main(int argc, char* argv[]) {
     SDL_Window* window = SDL_CreateWindow("Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, 0);
 
     if (window == nullptr) {
-        std::cout << "Failed to create window: " << SDL_GetError() << std::endl;
+        Logger::Error("Failed to create window: ");
         return 1;
     }
 
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
     if (renderer == nullptr) {
-        std::cout << "Failed to create renderer: " << SDL_GetError() << std::endl;
+        Logger::Error("Failed to create renderer: ");
         return 1;
     }
 
