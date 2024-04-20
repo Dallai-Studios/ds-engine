@@ -13,7 +13,7 @@ INCLUDES = -I"./libs/" \
 		   -L"./libs/sdl2/lib"
 
 SRC_FILES = src/*.cpp \
-			src/game/*.cpp \
+			src/engine/*.cpp \
 			src/tools/logger/*.cpp
 
 # the order here actually matters. SDL2main must be before SDL2 or else it will not compile

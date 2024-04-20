@@ -2,9 +2,9 @@
 
 #include <iostream>
 
-class Game {
+class Engine {
 public:
-    Game();
-    ~Game();
+    Engine();
+    ~Engine();
     void Run();
 };
