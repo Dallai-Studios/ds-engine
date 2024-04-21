@@ -6,11 +6,12 @@ CC = g++
 
 COMPILER_FLAGS = -Wall -Wfatal-errors
 
-TARGET_STD = -Wall -std=c++17
+TARGET_STD = -std=c++17
 
 INCLUDES = -I"./libs/" \
 		   -I"./libs/sdl2/include" \
-		   -L"./libs/sdl2/lib"
+		   -L"./libs/sdl2/lib" \
+		   -L"./libs/lua"
 
 SRC_FILES = src/*.cpp \
 			src/engine/*.cpp \

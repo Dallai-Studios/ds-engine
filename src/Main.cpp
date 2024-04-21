@@ -1,8 +1,10 @@
 #include "engine/Engine.h"
 #include <SDL2/SDL.h>
 #include "tools/logger/Logger.h"
+#include <glm/glm.hpp>
 
 int main(int argc, char* argv[]) {
+
     bool isRunning = true;
 
     SDL_Init(SDL_INIT_EVERYTHING);
