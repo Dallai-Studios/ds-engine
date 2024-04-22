@@ -96,7 +96,7 @@ class Registry {
         std::vector<IPool*> componentPools;
 
         // vector of component signatures
-        // the signature lets us know wich component is turned "on" or "off" for an entity
+        // the signature lets us know wich component is turned "on" or "off" for a given entity
         // [vector index = entityId]
         std::vector<Signature> entityComponentSignatures; 
 
@@ -104,5 +104,13 @@ class Registry {
         // [index = system typeId]
         std::unordered_map<std::type_index, System*> systems;
  
+    public:
+        Registry() = default;
+
+        // TODO: function to create a new Entity;
+        // TODO: function to destroy an Entity;
+        // TODO: function to add a component to an Entity;
+        // TODO: function to remove a component from an Entity;
+        // TODO: function to check if an Entity has a component;
 
 };
