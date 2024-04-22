@@ -25,6 +25,8 @@ class Entity {
     public: 
         bool operator == (const Entity& other) const { return this->id == other.GetId(); }
         bool operator != (const Entity& other) const { return this->id != other.GetId(); } 
+        bool operator > (const Entity& other) const { return id > other.id; }
+        bool operator < (const Entity& other) const { return id < other.id; }
 };
 
 // This IComponent works like an interface fore every component created in the game
@@ -105,12 +107,17 @@ class Pool : public IPool {
             return data.size(); 
         }
 
-
         void Resize(int newSize) { data.resize(newSize); }
+        
         void Clear() { data.clear(); }
+        
         void Add(T object) { data.push_back(object); }
+        
         void Set(int index, T object) { data[index] = object; }
+        
         T& Get(int index) { return static_cast<T&>(data[index]); }
+
+    public:
         T& operator [] (unsigned int index) { return data[index]; }
 };
 
@@ -133,7 +140,7 @@ class Registry {
         // vector of component pools
         // each pool contains all the data for a certain component type
         // [vector index = compontentId], [pool index = entityId]
-        std::vector<IPool*> componentPools;
+        std::vector<std::shared_ptr<IPool>> componentPools;
 
         // vector of component signatures
         // the signature let me know wich component is turned "on" or "off" for a given entity
@@ -142,7 +149,9 @@ class Registry {
 
         // map of active systems
         // [index = system typeId]
-        std::unordered_map<std::type_index, System*> systems;
+        std::unordered_map<std::type_index, std::shared_ptr<System>> systems;
+
+        template <typename TSystem> std::type_index GetSystemTypeIndex() const;
  
     public:
         Registry() = default;
@@ -152,14 +161,15 @@ class Registry {
 
         // Component Management
         template <typename TComponent, typename ...TArgs> void AddComponent(Entity entity, TArgs&& ...args);
-        template <typename TComponent> void RemoveComponent(Entity entity);
         template <typename TComponent> bool HasComponent(Entity entity) const;
-        
+        // template <typename TComponent> TComponent& GetComponent(Entity entity);
+        template <typename TComponent> void RemoveComponent(Entity entity);
+
         // System management
         template <typename TSystem, typename ...TArgs> void AddSystem(TArgs&& ...args);
         template <typename TSystem> void RemoveSystem();
-        template <typename TSystem> bool HasSystem();
-        template <typename TSystem> TSystem& GetSystem();
+        template <typename TSystem> bool HasSystem() const;
+        template <typename TSystem> TSystem& GetSystem() const;
 
         void AddEntityToSystem(Entity entity);
 
@@ -173,6 +183,13 @@ class Registry {
 
 template <typename TComponent, typename ...TArgs>
 void Registry::AddComponent(Entity entity, TArgs &&...args) {
+    const auto already_has_component = this->HasComponent<TComponent>(entity);
+
+    if (already_has_component) {
+        Logger::Error("There is already a component like that inside the provided entity");
+        return;
+    }
+
     const auto entity_id = entity.GetId();
     const auto component_id = Component<TComponent>::GetId();
 
@@ -181,30 +198,18 @@ void Registry::AddComponent(Entity entity, TArgs &&...args) {
     }
 
     if (!this->componentPools[component_id]) {
-        Pool<TComponent>* new_component_pool = new Pool<TComponent>();
+        std::shared_ptr<Pool<TComponent>> new_component_pool = std::make_shared<Pool<TComponent>>();
         this->componentPools[component_id] = new_component_pool;
     }
 
-    Pool<TComponent>* pool = this->componentPools[component_id];
+    std::shared_ptr<Pool<TComponent>> pool = 
+        std::static_pointer_cast<Pool<TComponent>>(this->componentPools[component_id]);
     
     if (entity_id >= pool->GetSize()) pool->Resize(this->entitiesCount);
 
     TComponent new_component(std::forward<TArgs>(args)...);
 
     this->entityComponentSignatures[entity_id].set(component_id);
-}
-
-template <typename TComponent>
-void Registry::RemoveComponent(Entity entity) {
-    const auto entityId = entity.GetId();
-    const auto componentId = Component<TComponent>::GetId();
-
-    if (!this->HasComponent<TComponent>()) {
-        Logger::Warn("Trying to remove a component that does not exist");
-        return;
-    }
-
-    this->entityComponentSignatures[entityId].set(componentId, false);
 }
 
 template <typename TComponent>
@@ -215,13 +220,67 @@ bool Registry::HasComponent(Entity entity) const {
     return this->entityComponentSignatures[entity_id].test(component_id);
 }
 
-template <typename TSystem, typename... TArgs>
-inline void Registry::AddSystem(TArgs &&...args) {
-    TSystem* new_system(new TSystem(std::forward<TArgs>(args)...));
+template <typename TComponent>
+void Registry::RemoveComponent(Entity entity) {
+    const auto entity_id = entity.GetId();
+    const auto component_id = Component<TComponent>::GetId();
 
+    if (!this->HasComponent<TComponent>()) {
+        Logger::Error("Trying to remove a component that does not exist");
+        return;
+    }
+
+    this->entityComponentSignatures[entity_id].set(component_id, false);
+}
+
+template <typename TSystem> 
+std::type_index Registry::GetSystemTypeIndex() const { 
     const auto system_typeid = typeid(TSystem);
     const auto system_type_index = std::type_index(system_typeid);
+    return system_type_index;
+}
+
+template <typename TSystem, typename... TArgs>
+void Registry::AddSystem(TArgs &&...args) {
+    std::shared_ptr<TSystem> new_system = std::make_shared<TSystem>(std::forward<TArgs>(args)...);
+
+    const auto system_type_index = this->GetSystemTypeIndex<TSystem>();
     const auto key_pair = std::make_pair(system_type_index, new_system);
 
     this->systems.insert(key_pair);
+}
+
+template <typename TSystem> 
+bool Registry::HasSystem() const {
+    const auto system_type_index = this->GetSystemTypeIndex<TSystem>();
+    auto found_system = this->systems.find(system_type_index);
+    return found_system != this->systems.end();
+}
+
+template <typename TSystem> 
+TSystem& Registry::GetSystem() const {
+    const bool has_system = this->HasSystem<TSystem>();
+    
+    if (!has_system) {
+        Logger::Error("Trying to get a system that does not exist");
+        return NULL;
+    }
+
+    const auto system_type_index = this->GetSystemTypeIndex<TSystem>();
+    const auto system = this->systems.find(system_type_index);
+    return *std::static_pointer_cast<TSystem>(system->second);
+}
+
+template <typename TSystem> 
+void Registry::RemoveSystem() {
+    const bool has_system = this->HasSystem<TSystem>();
+    
+    if (!has_system) {
+        Logger::Warn("Trying to remove a system that does not exists");
+        return;
+    }
+
+    const auto system_type_index = this->GetSystemTypeIndex<TSystem>();
+
+    this->systems.erase(system_type_index);
 }

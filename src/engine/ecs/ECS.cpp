@@ -1,18 +1,23 @@
 #include "ECS.h"
-
 #include <algorithm>
 #include "../../tools/logger/Logger.h"
 
-int IComponent::nextId = 0;
-
-
-// Entity class implementation
+// ------------------------------------------
+// Entity Class Implementation
+// ------------------------------------------
 int Entity::GetId() const {
     return this->id;
 }
 
+// ------------------------------------------
+// Component Class Implementation
+// ------------------------------------------
+int IComponent::nextId = 0;
 
-// System class implementation
+
+// ------------------------------------------
+// System Class Implementation
+// ------------------------------------------
 void System::AddEntityToSystem(Entity entity) {
     this->entities.push_back(entity);
 }
@@ -31,19 +36,45 @@ const Signature& System::GetComponentSignature() const {
     return this->componentSignature;
 }
 
-// Registry class implementation
-Entity Registry::CreateEntity()
-{
-    int entityId = this->entitiesCount++;
-    Entity entity(entityId);
-    // this->entitiesToBeAdded.insert(entity);
 
-    Logger::Info("New Entity created with id: " + std::to_string(entityId));
+// ------------------------------------------
+// Registry Class Implementation
+// ------------------------------------------
+Entity Registry::CreateEntity() {
+    int entity_id;
+    entity_id = this->entitiesCount++;
+
+    Entity entity(entity_id);
+    this->entitiesToBeAdded.insert(entity);
+
+    if ((unsigned) entity_id >= this->entityComponentSignatures.size()) {
+        this->entityComponentSignatures.resize(entity_id + 1);
+    }
+
+    Logger::Info("New Entity created with id: " + std::to_string(entity_id));
 
     return entity;
 }
 
-void Registry::Update()
-{
+void Registry::AddEntityToSystem(Entity entity) {
+    const auto entity_id = entity.GetId();
+    const auto& entity_component_signature = this->entityComponentSignatures[entity_id];
 
+    for (auto& system : this->systems) {
+        const auto& system_component_signature = system.second->GetComponentSignature();
+
+        bool is_interested = (entity_component_signature & system_component_signature) == system_component_signature;
+
+        if (is_interested) {
+            system.second->AddEntityToSystem(entity);
+        }
+    }
+}
+
+void Registry::Update() {
+    for (auto entity : this->entitiesToBeAdded) {
+        this->AddEntityToSystem(entity);
+    }
+
+    this->entitiesToBeAdded.clear();
 }

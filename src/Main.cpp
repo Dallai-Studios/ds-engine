@@ -1,4 +1,5 @@
 #include "engine/Engine.h"
+#include "engine/pipelines/graphics/Graphics.h"
 #include <SDL2/SDL.h>
 #include "tools/logger/Logger.h"
 #include <glm/glm.hpp>
@@ -7,37 +8,16 @@
 #define HEIGTH 600
 
 int main(int argc, char* argv[]) {
+    GraphicsConfig config;
+    config.width = WIDTH;
+    config.height = HEIGTH;
+    config.windowTitle = "Game";
 
-    bool is_running = true;
+    std::unique_ptr<Engine> engine = std::make_unique<Engine>();
 
-    SDL_Init(SDL_INIT_EVERYTHING);
+    engine->Initialize(GraphicsAPI::SDL2, config);
 
-    SDL_Window* game_window = SDL_CreateWindow("Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WIDTH, HEIGTH, 0);
-
-    if (game_window == nullptr) {
-        Logger::Error("Failed to create window" + std::string(SDL_GetError()));
-        return 1;
-    }
-
-    SDL_Renderer* game_renderer = SDL_CreateRenderer(game_window, -1, SDL_RENDERER_ACCELERATED);
-
-    if (game_renderer == nullptr) {
-        Logger::Error("Failed to create renderer: " + std::string(SDL_GetError()));
-        return 1;
-    }
-
-    SDL_Event game_event;
-
-    while (is_running) {
-        if (SDL_PollEvent(&game_event)) {
-            if (game_event.type == SDL_QUIT) is_running = false;
-            if (game_event.type == SDL_KEYDOWN) {
-                if (game_event.key.keysym.sym == SDLK_ESCAPE) is_running = false;
-            }
-        }
-    }
-
-    SDL_RenderPresent(game_renderer);
+    engine->Run();
 
     return 0;
 }
