@@ -1,6 +1,8 @@
 #pragma once
 #include <bitset>
 #include <vector>
+#include <unordered_map>
+#include <typeindex>
 
 #define MAX_COMPONENTS 32
 
@@ -44,17 +46,12 @@ class System {
 
     public:
         System() = default;
-
         virtual ~System() = default;
 
         void AddEntityToSystem(Entity entity);
-
         void RemoveEntityFromSystem(Entity entity);
-
         std::vector<Entity> GetEntities() const;
-
         const Signature& GetComponentSignature() const;
-
         template <typename T> void RequireComponent();
 };
 
@@ -64,14 +61,48 @@ void System::RequireComponent() {
     componentSignature.set(this->componentSignature.set(componentId));
 }
 
+class IPool { 
+    public: 
+        virtual ~IPool() = default;
+};
+
+template <typename T> 
+class Pool : public IPool {
+    private:
+        std::vector<T> data;
+
+    public:
+        Pool(unsigned int size) { data.resize(size); }
+        virtual ~Pool() { this->Clear(); }
+
+        bool IsEmpty() const { return data.empty(); }
+        int GetSize() const { return data.size(); }
+        void Resize(int newSize) { data.resize(newSize); }
+        void Clear() { data.clear(); }
+        void Add(T object) { data.push_back(object); }
+        void Set(int index, T object) { data[index] = object; }
+        T& Get(int index) { return static_cast<T&>(data[index]); }
+        T& operator [] (unsigned int index) { return data[index]; }
+};
+
 class Registry {
     private:
+        // Keep track of how many entities were added to the scene
         int entitiesCount = 0;
 
-    public: 
-        Registry() = default;
+        // vector of component pools
+        // each pool contains all the data for a certain component type
+        // [vector index = compontentId], [pool index = entityId]
+        std::vector<IPool*> componentPools;
 
-        ~Registry() = default;
+        // vector of component signatures
+        // the signature lets us know wich component is turned "on" or "off" for an entity
+        // [vector index = entityId]
+        std::vector<Signature> entityComponentSignatures; 
 
-        
+        // map of active systems
+        // [index = system typeId]
+        std::unordered_map<std::type_index, System*> systems;
+ 
+
 };
