@@ -9,6 +9,7 @@ COMPILER_FLAGS = -Wall -Wfatal-errors
 TARGET_STD = -std=c++17
 
 INCLUDES = -I"./libs/" \
+		   -I"./engine/" \
 		   -I"./libs/sdl2/include" \
 		   -L"./libs/sdl2/lib" \
 		   -L"./libs/lua"
