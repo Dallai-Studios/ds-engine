@@ -15,10 +15,11 @@ INCLUDES = -I"./libs/" \
 
 SRC_FILES = src/*.cpp \
 			src/engine/*.cpp \
-			src/tools/logger/*.cpp
+			src/tools/logger/*.cpp \
+			src/engine/ecs/*.cpp
 
 # the order here actually matters. SDL2main must be before SDL2 or else it will not compile
-LINKER_FLAGS = -lmingw32 -lSDL2main -lSDL2
+LINKER_FLAGS = -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer
 
 OUTPUT = game
 
