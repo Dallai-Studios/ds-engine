@@ -40,13 +40,14 @@ struct IComponent {
 
 template <typename TComponent> 
 class Component : public IComponent {
-    /**
-     * @brief Returns the current id of the component.
-    */
-    static int GetId() { //this is already defined to make things more convinient
-        static int id = nextId++;
-        return id;
-    }
+    public:
+        /**
+         * @brief Returns the current id of the component.
+        */
+        static int GetId() { //this is already defined to make things more convinient
+            static int id = nextId++;
+            return id;
+        }
 };
 
 // The system processes entities that contains a specific signature
@@ -170,6 +171,7 @@ class Registry {
         template <typename TSystem> void RemoveSystem();
         template <typename TSystem> bool HasSystem() const;
         template <typename TSystem> TSystem& GetSystem() const;
+
 
         void AddEntityToSystem(Entity entity);
 
